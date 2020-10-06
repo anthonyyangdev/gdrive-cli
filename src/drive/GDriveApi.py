@@ -110,7 +110,7 @@ class GDriveApi:
         """
         return self.drive_items[name] if name in self.drive_items else None
 
-    def download(self, name: str, target_filename: str = None, options: List[str] =None):
+    def download(self, name: str, options: List[str] = None, target_filename: str = None):
         """
         Downloads the file with the given [name] in the current directory and
         saves it in [target_filename] or [name] if a target is not given.
@@ -131,7 +131,7 @@ class GDriveApi:
         for opt in options:
             if opt in mime_type_options:
                 mime_type = mime_type_options[opt]
-        mime_type = mime_type if mime_type is not None else mime_type
+        mime_type = mime_type if mime_type is not None else "application/pdf"
 
         desired_item = self.get_item(name)
         if desired_item is None:
