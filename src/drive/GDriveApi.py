@@ -1,9 +1,16 @@
 import io
+from typing import TypedDict, Dict
 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 from src import ColorText
+
+
+class GDriveItem(TypedDict):
+    id: str
+    name: str
+    mimeType: str
 
 
 class GDriveApi:
@@ -15,7 +22,7 @@ class GDriveApi:
         self.service = build('drive', 'v3', credentials=credentials)
         self.page_token = None
         self.folder_stack = []
-        self.drive_items = {'root': {'id': 'root'}}
+        self.drive_items: Dict[str, GDriveItem] = {'root': {'id': 'root'}}
         self.cd('root')
 
     def cd(self, folder_name: str):
@@ -34,7 +41,7 @@ class GDriveApi:
             self.folder_stack.append({'name': folder_name, 'id': folder_id})
         items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
                                           spaces='drive',
-                                          fields='nextPageToken, files(*)',
+                                          fields='files(id, name, mimeType)',
                                           pageToken=self.page_token).execute().get('files', [])
         self.drive_items = {i['name']: i for i in items}
 
