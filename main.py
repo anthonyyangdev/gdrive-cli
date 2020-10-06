@@ -2,17 +2,12 @@ import os
 import pathlib
 import subprocess
 
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-
 import pickle
 import os.path
 
 from src.ReferenceVar import ReferenceVar
-from src.drive.GDriveApi import GDriveApi, Credentials
+from src.drive.GDriveApi import GDriveApi, Credentials, login
 from src.prompt.Prompt import accept
-
-SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def main(creds: Credentials):
@@ -43,7 +38,6 @@ def main(creds: Credentials):
             'record': lambda _: api.record_filenames(),
             'exec': lambda arg: subprocess.call(arg, shell=True)
         }
-
         autocomplete_options = list(options.keys()) + api.get_names()
         try:
             user_input = accept(pathway, history_path, autocomplete_options)
@@ -53,24 +47,6 @@ def main(creds: Credentials):
                 print(f"Unknown command {user_input['cmd']}")
         except KeyboardInterrupt:
             pass
-
-
-def login(credentials: ReferenceVar[Credentials]):
-    """
-    Performs Google login and saves login information in a token.
-    """
-    current_directory = pathlib.Path(__file__).parent.absolute()
-    token_path = os.path.join(current_directory, 'token.pickle')
-    if credentials.value and credentials.value.expired and credentials.value.refresh_token:
-        credentials.value.refresh(Request())
-    else:
-        cred_files = os.path.join(current_directory, 'credentials.json')
-        flow = InstalledAppFlow.from_client_secrets_file(
-            cred_files, SCOPES)
-        credentials.value = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open(token_path, 'wb') as token:
-        pickle.dump(credentials.value, token)
 
 
 def start():
@@ -91,7 +67,6 @@ def start():
             "login": lambda: login(creds),
             "quit": lambda: exit(0)
         }
-
         try:
             user_input = accept('', history_path, list(options.keys()))
             if user_input['cmd'] in options:

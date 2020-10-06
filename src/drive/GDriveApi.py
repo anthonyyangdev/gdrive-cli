@@ -1,11 +1,16 @@
 import io
+import os
+import pathlib
+import pickle
 from typing import TypedDict, Dict, Callable
 
-from google_auth_httplib2 import Request
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 
+from src.ReferenceVar import ReferenceVar
 from src.prompt import ColorText
 
 
@@ -136,3 +141,21 @@ class GDriveApi:
         target_filename = 'filenames.txt' if target_filename is None else target_filename
         with open(target_filename, 'w') as f:
             f.write(content)
+
+
+def login(credentials: ReferenceVar[Credentials]):
+    """
+    Performs Google login and saves login information in a token.
+    """
+    current_directory = pathlib.Path(__file__).parent.absolute()
+    token_path = os.path.join(current_directory, 'token.pickle')
+    if credentials.value and credentials.value.expired and credentials.value.refresh_token:
+        credentials.value.refresh(Request())
+    else:
+        cred_files = os.path.join(current_directory, 'credentials.json')
+        flow = InstalledAppFlow.from_client_secrets_file(
+            cred_files, ['https://www.googleapis.com/auth/drive'])
+        credentials.value = flow.run_local_server(port=0)
+    # Save the credentials for the next run
+    with open(token_path, 'wb') as token:
+        pickle.dump(credentials.value, token)
