@@ -1,11 +1,19 @@
 import io
-from typing import TypedDict, Dict
+from typing import TypedDict, Dict, Callable
 
+from google_auth_httplib2 import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 
 from src.prompt import ColorText
+
+
+class Credentials:
+    expired: bool
+    refresh: Callable[[Request], None]
+    refresh_token: str
+    valid: bool
 
 
 class GDriveItem(TypedDict):
@@ -19,7 +27,7 @@ class GDriveApi:
     A wrapper interface of the Google Drive API.
     """
 
-    def __init__(self, credentials):
+    def __init__(self, credentials: Credentials):
         self.service = build('drive', 'v3', credentials=credentials)
         self.page_token = None
         self.folder_stack = []

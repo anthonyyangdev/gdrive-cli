@@ -1,7 +1,6 @@
 import os
 import pathlib
 import subprocess
-from typing import Any
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -10,13 +9,13 @@ import pickle
 import os.path
 
 from src.ReferenceVar import ReferenceVar
-from src.drive.GDriveApi import GDriveApi
+from src.drive.GDriveApi import GDriveApi, Credentials
 from src.prompt.Prompt import accept
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
-def main(creds):
+def main(creds: Credentials):
     """
     Performs the Google Drive CLI file system navigation.
     """
@@ -56,7 +55,7 @@ def main(creds):
             pass
 
 
-def login(credentials: ReferenceVar[Any]):
+def login(credentials: ReferenceVar[Credentials]):
     """
     Performs Google login and saves login information in a token.
     """
@@ -79,7 +78,7 @@ def start():
     The first window of the GDrive CLI. Logs a user into a Google account.
     If a login token already exists, then this step is skipped and goes to the file system.
     """
-    creds: ReferenceVar[Any] = ReferenceVar()
+    creds: ReferenceVar[Credentials] = ReferenceVar()
     current_directory = pathlib.Path(__file__).parent.absolute()
     token_path = os.path.join(current_directory, 'token.pickle')
     history_path = os.path.join(current_directory, 'history.txt')
