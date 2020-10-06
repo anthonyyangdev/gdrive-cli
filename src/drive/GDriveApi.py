@@ -2,7 +2,7 @@ import io
 import os
 import pathlib
 import pickle
-from typing import TypedDict, Dict, Callable
+from typing import TypedDict, Dict, Callable, Optional
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -51,7 +51,11 @@ class GDriveApi:
             parent = self.folder_stack[len(self.folder_stack) - 1]
             folder_id = parent['id']
         else:
-            folder_id = self.get_item(folder_name)['id']
+            desired_item = self.get_item(folder_name)
+            if desired_item is None:
+                print("Cannot find folder.")
+                return
+            folder_id = desired_item['id']
             self.folder_stack.append({'name': folder_name, 'id': folder_id})
         items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
                                           spaces='drive',
@@ -119,7 +123,11 @@ class GDriveApi:
             print("File/Folder does not exist")
         else:
             target_filename = name if target_filename is None else target_filename
-            request = self.service.files().get_media(fileId=desired_item['id'])
+            if desired_item['mimeType'].startswith("application/vnd.google-apps"):
+                request = self.service.files().export_media(fileId=desired_item['id'],
+                                                            mimeType="application/pdf")
+            else:
+                request = self.service.files().get_media(fileId=desired_item['id'])
             fh = io.FileIO(target_filename, 'wb')
             downloader = MediaIoBaseDownload(fh, request)
             done = False
@@ -143,12 +151,21 @@ class GDriveApi:
             f.write(content)
 
 
+current_directory = pathlib.Path(__file__).parent.absolute()
+token_path = os.path.join(current_directory, 'token.pickle')
+
+
+def get_login_token_opt() -> Optional[Credentials]:
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
+            return pickle.load(token)
+    return None
+
+
 def login(credentials: ReferenceVar[Credentials]):
     """
     Performs Google login and saves login information in a token.
     """
-    current_directory = pathlib.Path(__file__).parent.absolute()
-    token_path = os.path.join(current_directory, 'token.pickle')
     if credentials.value and credentials.value.expired and credentials.value.refresh_token:
         credentials.value.refresh(Request())
     else:
@@ -159,3 +176,8 @@ def login(credentials: ReferenceVar[Credentials]):
     # Save the credentials for the next run
     with open(token_path, 'wb') as token:
         pickle.dump(credentials.value, token)
+
+
+def logout(creds: ReferenceVar[Credentials]):
+    if os.path.exists(token_path):
+        os.remove(token_path)

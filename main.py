@@ -6,7 +6,7 @@ import pickle
 import os.path
 
 from src.ReferenceVar import ReferenceVar
-from src.drive.GDriveApi import GDriveApi, Credentials, login
+from src.drive.GDriveApi import GDriveApi, Credentials, login, get_login_token_opt, logout
 from src.prompt.Prompt import accept
 
 
@@ -17,14 +17,12 @@ def main(creds: ReferenceVar[Credentials]):
     api = GDriveApi(creds.value)
     online: ReferenceVar[bool] = ReferenceVar(True)
     current_directory = pathlib.Path(__file__).parent.absolute()
-    token_path = os.path.join(current_directory, 'token.pickle')
     history_path = os.path.join(current_directory, 'history.txt')
 
-    def remove_login_token():
-        if os.path.exists(token_path):
-            os.remove(token_path)
-        online.value = False
+    def handle_logout():
+        logout(creds)
         creds.value = None
+        online.value = None
 
     while online.value:
         pathway = api.get_current_path_string()
@@ -34,7 +32,7 @@ def main(creds: ReferenceVar[Credentials]):
             'download': lambda arg: api.download(arg),
             'ls': lambda _: print(api.ls()),
             'quit': lambda _: exit(0),
-            'switch': lambda _: remove_login_token(),
+            'switch': (lambda _: handle_logout()),
             'current': lambda _: print(pathway),
             'record': lambda arg: api.record_filenames(arg),
             'exec': lambda arg: subprocess.call(arg, shell=True)
@@ -55,13 +53,9 @@ def start():
     The first window of the GDrive CLI. Logs a user into a Google account.
     If a login token already exists, then this step is skipped and goes to the file system.
     """
-    creds: ReferenceVar[Credentials] = ReferenceVar()
+    creds: ReferenceVar[Credentials] = ReferenceVar(get_login_token_opt())
     current_directory = pathlib.Path(__file__).parent.absolute()
-    token_path = os.path.join(current_directory, 'token.pickle')
     history_path = os.path.join(current_directory, 'history.txt')
-    if os.path.exists(token_path):
-        with open(token_path, 'rb') as token:
-            creds.value = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     while not creds.value or not creds.value.valid:
         options = {
