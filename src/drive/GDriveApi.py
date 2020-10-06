@@ -2,7 +2,7 @@ import io
 import os
 import pathlib
 import pickle
-from typing import TypedDict, Dict, Callable, Optional
+from typing import TypedDict, Dict, Callable, Optional, List
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -110,14 +110,29 @@ class GDriveApi:
         """
         return self.drive_items[name] if name in self.drive_items else None
 
-    def download(self, name: str, target_filename: str = None):
+    def download(self, name: str, target_filename: str = None, options: List[str] =None):
         """
         Downloads the file with the given [name] in the current directory and
         saves it in [target_filename] or [name] if a target is not given.
+        :param options:
         :param name:
         :param target_filename:
         :return:
         """
+        if options is None:
+            options = []
+        mime_type_options = {
+            "-pdf": "application/pdf",
+            "-docs": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "-excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "-powerpoint": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        }
+        mime_type = None
+        for opt in options:
+            if opt in mime_type_options:
+                mime_type = mime_type_options[opt]
+        mime_type = mime_type if mime_type is not None else mime_type
+
         desired_item = self.get_item(name)
         if desired_item is None:
             print("File/Folder does not exist")
@@ -125,7 +140,7 @@ class GDriveApi:
             target_filename = name if target_filename is None else target_filename
             if desired_item['mimeType'].startswith("application/vnd.google-apps"):
                 request = self.service.files().export_media(fileId=desired_item['id'],
-                                                            mimeType="application/pdf")
+                                                            mimeType=mime_type)
             else:
                 request = self.service.files().get_media(fileId=desired_item['id'])
             fh = io.FileIO(target_filename, 'wb')
