@@ -36,7 +36,7 @@ def main(creds: ReferenceVar[Credentials]):
             'quit': lambda _: exit(0),
             'switch': lambda _: remove_login_token(),
             'current': lambda _: print(pathway),
-            'record': lambda _: api.record_filenames(),
+            'record': lambda arg: api.record_filenames(arg),
             'exec': lambda arg: subprocess.call(arg, shell=True)
         }
         autocomplete_options = list(options.keys()) + api.get_names()
