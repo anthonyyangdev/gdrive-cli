@@ -9,13 +9,14 @@ from google.auth.transport.requests import Request
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 
-from src.AutoCompleter import AutoCompleter
+from src.prompt.AutoCompleter import AutoCompleter
 
 import pickle
 import os.path
 
 from src.ReferenceVar import ReferenceVar
 from src.drive.GDriveApi import GDriveApi
+from src.prompt.Prompt import accept
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
@@ -36,29 +37,27 @@ def main(creds):
         online.value = False
 
     while online.value:
+        pathway = api.get_current_path_string()
         options = {
-            'cd': lambda cmd: api.cd(" ".join(cmd[1:])),
-            'typeof': lambda cmd: print(api.typeof(" ".join(cmd[1:]))),
-            'download': lambda cmd: api.download(" ".join(cmd[1:])),
+            'cd': lambda arg: api.cd(arg),
+            'typeof': lambda arg: print(api.typeof(arg)),
+            'download': lambda arg: api.download(arg),
             'ls': lambda _: print(api.ls()),
             'quit': lambda _: exit(0),
             'switch': lambda _: remove_login_token(),
-            'current': lambda _: print(api.get_current_path_string()),
+            'current': lambda _: print(pathway),
             'record': lambda _: api.record_filenames(),
-            'exec': lambda cmd: subprocess.call(" ".join(cmd[1:]), shell=True)
+            'exec': lambda arg: subprocess.call(arg, shell=True)
         }
 
         autocomplete_options = list(options.keys()) + api.get_names()
-        pathway = api.get_current_path_string()
         try:
-            user_input = prompt(f"GDrive ∞/{pathway}> ",
-                                history=FileHistory(history_path),
-                                completer=AutoCompleter(autocomplete_options),
-                                ).strip().split(' ')
-            if user_input[0] in options:
-                options[user_input[0]](user_input)
+            user_input = accept(pathway, history_path, autocomplete_options)
+            if user_input['cmd'] in options:
+                print(user_input['argument'])
+                options[user_input['cmd']](user_input['argument'])
             else:
-                print(f"Unknown command {user_input[0]}")
+                print(f"Unknown command {user_input['cmd']}")
         except KeyboardInterrupt:
             pass
 
@@ -100,12 +99,9 @@ def start():
             "login": lambda: login(creds),
             "quit": lambda: exit(0)
         }
-        user_input = prompt('GDrive ∞> ',
-                            history=FileHistory(history_path),
-                            completer=AutoCompleter(list(options.keys())),
-                            ).strip()
+        user_input = accept('', history_path, list(options.keys()))
         if user_input in options:
-            options[user_input]()
+            options[user_input['cmd']]()
             main(creds.value)
         else:
             print("Invalid input")

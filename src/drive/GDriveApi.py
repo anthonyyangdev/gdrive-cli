@@ -4,7 +4,7 @@ from typing import TypedDict, Dict
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
-from src import ColorText
+from src.prompt import ColorText
 
 
 class GDriveItem(TypedDict):
