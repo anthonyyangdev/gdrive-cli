@@ -95,7 +95,7 @@ def start():
 
         try:
             user_input = accept('', history_path, list(options.keys()))
-            if user_input in options:
+            if user_input['cmd'] in options:
                 options[user_input['cmd']]()
                 main(creds.value)
             else:
