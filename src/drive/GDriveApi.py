@@ -2,6 +2,7 @@ import io
 from typing import TypedDict, Dict
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload
 
 from src.prompt import ColorText
@@ -109,9 +110,12 @@ class GDriveApi:
             fh = io.FileIO(target_filename, 'wb')
             downloader = MediaIoBaseDownload(fh, request)
             done = False
-            while done is False:
-                status, done = downloader.next_chunk()
-                print("Download %d%%." % int(status.progress() * 100))
+            try:
+                while done is False:
+                    status, done = downloader.next_chunk()
+                    print("Download %d%%." % int(status.progress() * 100))
+            except HttpError as http:
+                print(http.content.decode('utf-8'))
 
     def record_filenames(self, target_filename: str = None):
         """

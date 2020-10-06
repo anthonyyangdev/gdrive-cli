@@ -6,11 +6,6 @@ from typing import Any
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-from prompt_toolkit import prompt
-from prompt_toolkit.history import FileHistory
-
-from src.prompt.AutoCompleter import AutoCompleter
-
 import pickle
 import os.path
 
@@ -54,7 +49,6 @@ def main(creds):
         try:
             user_input = accept(pathway, history_path, autocomplete_options)
             if user_input['cmd'] in options:
-                print(user_input['argument'])
                 options[user_input['cmd']](user_input['argument'])
             else:
                 print(f"Unknown command {user_input['cmd']}")
@@ -72,7 +66,6 @@ def login(credentials: ReferenceVar[Any]):
         credentials.value.refresh(Request())
     else:
         cred_files = os.path.join(current_directory, 'credentials.json')
-        print(cred_files)
         flow = InstalledAppFlow.from_client_secrets_file(
             cred_files, SCOPES)
         credentials.value = flow.run_local_server(port=0)
@@ -99,12 +92,16 @@ def start():
             "login": lambda: login(creds),
             "quit": lambda: exit(0)
         }
-        user_input = accept('', history_path, list(options.keys()))
-        if user_input in options:
-            options[user_input['cmd']]()
-            main(creds.value)
-        else:
-            print("Invalid input")
+
+        try:
+            user_input = accept('', history_path, list(options.keys()))
+            if user_input in options:
+                options[user_input['cmd']]()
+                main(creds.value)
+            else:
+                print("Invalid input")
+        except KeyboardInterrupt:
+            pass
     else:
         main(creds.value)
 
