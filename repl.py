@@ -2,7 +2,6 @@ from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
-import click
 from fuzzyfinder.main import fuzzyfinder
 
 SQLKeywords = ['select', 'from', 'insert', 'update', 'delete', 'drop', 'Trial and Error']

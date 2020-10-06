@@ -14,8 +14,9 @@ class GDriveApi:
     def __init__(self, credentials):
         self.service = build('drive', 'v3', credentials=credentials)
         self.page_token = None
-        self.folder_stack = [{'id': 'root', 'name': 'root'}]
-        self.drive_items = {}
+        self.folder_stack = []
+        self.drive_items = {'root': {'id': 'root'}}
+        self.cd('root')
 
     def cd(self, folder_name: str):
         """
@@ -23,14 +24,18 @@ class GDriveApi:
         :param folder_name:
         :return:
         """
+        folder_id: str
         if folder_name == '..' and len(self.folder_stack) > 1:
             self.folder_stack.pop()
             parent = self.folder_stack[len(self.folder_stack) - 1]
-            folder_name = parent['id']
-        items = self.service.files().list(q=f"'{folder_name}' in parents and trashed = False",
+            folder_id = parent['id']
+        else:
+            folder_id = self.get_item(folder_name)['id']
+            self.folder_stack.append({'name': folder_name, 'id': folder_id})
+        items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
                                           spaces='drive',
                                           fields='nextPageToken, files(*)',
-                                          pageToken=self.page_token).execute()
+                                          pageToken=self.page_token).execute().get('files', [])
         self.drive_items = {i['name']: i for i in items}
 
     def typeof(self, name: str) -> str:
@@ -56,7 +61,7 @@ class GDriveApi:
         :return:
         """
         output = []
-        for name, item in self.drive_items:
+        for name, item in self.drive_items.items():
             is_folder = item['mimeType'] == "application/vnd.google-apps.folder"
             if is_folder:
                 output.append(ColorText.bcolors.OKBLUE)
@@ -70,7 +75,7 @@ class GDriveApi:
         Returns the current directory path string.
         :return:
         """
-        return "/".join(map(lambda d: d[0], self.folder_stack))
+        return "/".join(map(lambda d: d['name'], self.folder_stack))
 
     def get_item(self, name: str):
         """

@@ -46,14 +46,17 @@ def main(creds):
 
         autocomplete_options = list(options.keys()) + api.get_names()
         pathway = api.get_current_path_string()
-        user_input = prompt(f"GDrive ∞/{pathway}> ",
-                            history=FileHistory('history.txt'),
-                            completer=AutoCompleter(autocomplete_options),
-                            ).strip().split(' ')
-        if user_input[0] in options:
-            options[user_input[0]](user_input)
-        else:
-            print(f"Unknown command {user_input[0]}")
+        try:
+            user_input = prompt(f"GDrive ∞/{pathway}> ",
+                                history=FileHistory('history.txt'),
+                                completer=AutoCompleter(autocomplete_options),
+                                ).strip().split(' ')
+            if user_input[0] in options:
+                options[user_input[0]](user_input)
+            else:
+                print(f"Unknown command {user_input[0]}")
+        except KeyboardInterrupt:
+            pass
 
 
 def login(credentials: ReferenceVar[Any]):
