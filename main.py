@@ -1,4 +1,6 @@
 import io
+import os
+import subprocess
 from typing import Any, List, Tuple
 
 from googleapiclient.discovery import build
@@ -21,6 +23,9 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def main(creds):
+    """
+        Performs the Google Drive CLI file system navigation.
+    """
     page_token = None
     folder_stack: ReferenceVar[List[Tuple[str, str]]] = ReferenceVar([('root', 'root')])
     query: ReferenceVar[str] = ReferenceVar()
@@ -89,7 +94,8 @@ def main(creds):
             'quit': lambda _: exit(0),
             'switch': lambda _: remove_login_token(),
             'current': lambda _: print(folder_stack.value[0]),
-            'record': lambda _: record_filenames(items)
+            'record': lambda _: record_filenames(items),
+            'exec': lambda cmd: subprocess.call(" ".join(cmd[1:]), shell=True)
         }
 
         autocomplete_options = list(options.keys()) + list(map(lambda i: i['name'], items))
@@ -105,6 +111,9 @@ def main(creds):
 
 
 def login(creds: ReferenceVar[Any]):
+    """
+    Performs Google login and saves login information in a token.
+    """
     if creds.value and creds.value.expired and creds.value.refresh_token:
         creds.value.refresh(Request())
     else:
@@ -117,6 +126,10 @@ def login(creds: ReferenceVar[Any]):
 
 
 def start():
+    """
+    The first window of the GDrive CLI. Logs a user into a Google account.
+    If a login token already exists, then this step is skipped and goes to the file system.
+    """
     creds: ReferenceVar[Any] = ReferenceVar()
     if os.path.exists('token.pickle'):
         with open('token.pickle', 'rb') as token:

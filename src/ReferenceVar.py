@@ -4,6 +4,9 @@ T = TypeVar('T')
 
 
 class ReferenceVar(Generic[T]):
+    """
+    Creates a reference variable of any type.
+    """
     def __init__(self, init: Optional[T] = None):
         self.value: Optional[T] = init
 

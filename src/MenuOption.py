@@ -9,6 +9,7 @@ class MenuOption:
 
 
 class MenuOptionList:
+
     def __init__(self):
         self.listing: List[MenuOption] = []
 
