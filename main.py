@@ -11,6 +11,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from prompt_toolkit import prompt
 from prompt_toolkit.history import FileHistory
 
+from src import ColorText
 from src.AutoCompleter import AutoCompleter
 
 import pickle
@@ -32,6 +33,12 @@ def main(creds):
     online: ReferenceVar[bool] = ReferenceVar(True)
     service = build('drive', 'v3', credentials=creds)
 
+    results: ReferenceVar[List[Any]] = ReferenceVar([])
+    results.value = service.files().list(q=_.root_content() if query.value is None else query.value,
+                                         spaces='drive',
+                                         fields='nextPageToken, files(*)',
+                                         pageToken=page_token).execute()
+
     def remove_login_token():
         if os.path.exists('token.pickle'):
             os.remove('token.pickle')
@@ -41,6 +48,10 @@ def main(creds):
         if name == ".." and len(folder_stack) > 1:
             folder_stack.value.pop(0)
             query.value = _.list_all_in_folder(folder_stack.value[0][1])
+            results.value = service.files().list(q=_.root_content() if query.value is None else query.value,
+                                                 spaces='drive',
+                                                 fields='nextPageToken, files(*)',
+                                                 pageToken=page_token).execute()
             return
         wanted_items = list(filter(lambda i: i['name'] == name, drive_items))
         if len(wanted_items) == 0 or wanted_items[0]['mimeType'] != "application/vnd.google-apps.folder":
@@ -49,10 +60,19 @@ def main(creds):
             item = wanted_items[0]
             folder_stack.value.insert(0, (item['name'], item['id']))
             query.value = _.list_all_in_folder(wanted_items[0]['id'])
+            results.value = service.files().list(q=_.root_content() if query.value is None else query.value,
+                                                 spaces='drive',
+                                                 fields='nextPageToken, files(*)',
+                                                 pageToken=page_token).execute()
 
     def print_items(drive_items):
         for item in drive_items:
-            print(item['name'], item['id'], item['mimeType'])
+            # , item['id'], item['mimeType']
+            if item['mimeType'] == "application/vnd.google-apps.folder":
+                print(ColorText.bcolors.OKBLUE, end='')
+            print(item['name'])
+            if item['mimeType'] == "application/vnd.google-apps.folder":
+                print(ColorText.bcolors.ENDC, end='')
 
     def get_type(drive_items, item_name):
         desired_item = list(filter(lambda i: i['name'] == item_name, drive_items))
@@ -80,11 +100,7 @@ def main(creds):
                 print("Download %d%%." % int(status.progress() * 100))
 
     while online.value:
-        results = service.files().list(q=_.root_content() if query.value is None else query.value,
-                                       spaces='drive',
-                                       fields='nextPageToken, files(*)',
-                                       pageToken=page_token).execute()
-        items = results.get('files', [])
+        items = results.value.get('files', [])
 
         options = {
             'cd': lambda cmd: go_into_folder(items, " ".join(cmd[1:])),
@@ -107,7 +123,7 @@ def main(creds):
         if user_input[0] in options:
             options[user_input[0]](user_input)
         else:
-            print("Invalid input")
+            print(f"Unknown command {user_input[0]}")
 
 
 def login(creds: ReferenceVar[Any]):
