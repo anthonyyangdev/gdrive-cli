@@ -10,11 +10,11 @@ from src.drive.GDriveApi import GDriveApi, Credentials, login
 from src.prompt.Prompt import accept
 
 
-def main(creds: Credentials):
+def main(creds: ReferenceVar[Credentials]):
     """
     Performs the Google Drive CLI file system navigation.
     """
-    api = GDriveApi(creds)
+    api = GDriveApi(creds.value)
     online: ReferenceVar[bool] = ReferenceVar(True)
     current_directory = pathlib.Path(__file__).parent.absolute()
     token_path = os.path.join(current_directory, 'token.pickle')
@@ -24,6 +24,7 @@ def main(creds: Credentials):
         if os.path.exists(token_path):
             os.remove(token_path)
         online.value = False
+        creds.value = None
 
     while online.value:
         pathway = api.get_current_path_string()
@@ -71,13 +72,13 @@ def start():
             user_input = accept('', history_path, list(options.keys()))
             if user_input['cmd'] in options:
                 options[user_input['cmd']]()
-                main(creds.value)
+                main(creds)
             else:
                 print("Invalid input")
         except KeyboardInterrupt:
             pass
     else:
-        main(creds.value)
+        main(creds)
 
 
 if __name__ == "__main__":

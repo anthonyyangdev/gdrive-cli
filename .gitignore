@@ -141,10 +141,10 @@ cython_debug/
 
 .idea/
 
-client.secret
-client_id.txt
-client_secrets.json
-credentials.json
+src/drive/client.secret
+src/drive/client_id.txt
+src/drive/client_secrets.json
+src/drive/credentials.json
 filenames.txt
 history.txt
 token.pickle
