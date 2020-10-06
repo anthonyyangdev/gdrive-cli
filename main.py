@@ -1,4 +1,5 @@
 import os
+import pathlib
 import subprocess
 from typing import Any
 
@@ -25,10 +26,13 @@ def main(creds):
     """
     api = GDriveApi(creds)
     online: ReferenceVar[bool] = ReferenceVar(True)
+    current_directory = pathlib.Path(__file__).parent.absolute()
+    token_path = os.path.join(current_directory, 'token.pickle')
+    history_path = os.path.join(current_directory, 'history.txt')
 
     def remove_login_token():
-        if os.path.exists('token.pickle'):
-            os.remove('token.pickle')
+        if os.path.exists(token_path):
+            os.remove(token_path)
         online.value = False
 
     while online.value:
@@ -48,7 +52,7 @@ def main(creds):
         pathway = api.get_current_path_string()
         try:
             user_input = prompt(f"GDrive ∞/{pathway}> ",
-                                history=FileHistory('history.txt'),
+                                history=FileHistory(history_path),
                                 completer=AutoCompleter(autocomplete_options),
                                 ).strip().split(' ')
             if user_input[0] in options:
@@ -63,14 +67,18 @@ def login(credentials: ReferenceVar[Any]):
     """
     Performs Google login and saves login information in a token.
     """
+    current_directory = pathlib.Path(__file__).parent.absolute()
+    token_path = os.path.join(current_directory, 'token.pickle')
     if credentials.value and credentials.value.expired and credentials.value.refresh_token:
         credentials.value.refresh(Request())
     else:
+        cred_files = os.path.join(current_directory, 'credentials.json')
+        print(cred_files)
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES)
+            cred_files, SCOPES)
         credentials.value = flow.run_local_server(port=0)
     # Save the credentials for the next run
-    with open('token.pickle', 'wb') as token:
+    with open(token_path, 'wb') as token:
         pickle.dump(credentials.value, token)
 
 
@@ -80,8 +88,11 @@ def start():
     If a login token already exists, then this step is skipped and goes to the file system.
     """
     creds: ReferenceVar[Any] = ReferenceVar()
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    current_directory = pathlib.Path(__file__).parent.absolute()
+    token_path = os.path.join(current_directory, 'token.pickle')
+    history_path = os.path.join(current_directory, 'history.txt')
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
             creds.value = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     while not creds.value or not creds.value.valid:
@@ -90,7 +101,7 @@ def start():
             "quit": lambda: exit(0)
         }
         user_input = prompt('GDrive ∞> ',
-                            history=FileHistory('history.txt'),
+                            history=FileHistory(history_path),
                             completer=AutoCompleter(list(options.keys())),
                             ).strip()
         if user_input in options:
