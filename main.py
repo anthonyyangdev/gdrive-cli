@@ -57,7 +57,7 @@ def start():
     current_directory = pathlib.Path(__file__).parent.absolute()
     history_path = os.path.join(current_directory, 'history.txt')
     # If there are no (valid) credentials available, let the user log in.
-    while not creds.value or not creds.value.valid:
+    while creds.value is None or not creds.value.valid:
         options = {
             "login": lambda: login(creds),
             "quit": lambda: exit(0)
