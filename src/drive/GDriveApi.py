@@ -37,6 +37,7 @@ class GDriveApi:
         self.page_token = None
         self.folder_stack = []
         self.drive_items: Dict[str, GDriveItem] = {'root': {'id': 'root'}}
+        self.cache = {}
         self.cd('root')
 
     def cd(self, folder_name: str):
@@ -57,11 +58,15 @@ class GDriveApi:
                 return
             folder_id = desired_item['id']
             self.folder_stack.append({'name': folder_name, 'id': folder_id})
-        items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
-                                          spaces='drive',
-                                          fields='files(id, name, mimeType)',
-                                          pageToken=self.page_token).execute().get('files', [])
-        self.drive_items = {i['name']: i for i in items}
+        if folder_id in self.cache:
+            self.drive_items = self.cache[folder_id]
+        else:
+            items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
+                                              spaces='drive',
+                                              fields= 'files(id, name, mimeType)',
+                                              pageToken=self.page_token).execute().get('files', [])
+            self.drive_items = {i['name']: i for i in items}
+            self.cache[folder_id] = self.drive_items
 
     def typeof(self, name: str) -> str:
         """
