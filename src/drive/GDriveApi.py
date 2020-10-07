@@ -195,7 +195,7 @@ def login(credentials: ReferenceVar[Credentials]):
     if credentials.value and credentials.value.expired and credentials.value.refresh_token:
         credentials.value.refresh(Request())
     else:
-        cred_files = os.path.join(current_directory, 'credentials.json')
+        cred_files = os.path.join(current_directory, 'client_secrets.json')
         flow = InstalledAppFlow.from_client_secrets_file(
             cred_files, ['https://www.googleapis.com/auth/drive'])
         credentials.value = flow.run_local_server(port=0)
