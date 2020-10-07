@@ -8,13 +8,13 @@ Create a Google Developer account to add a Google Developer project to use the G
 
 ## Commands
 
-There are two types of views, `Login` and `File System`. The set of available commands are different for each view.
+There are two types of views, `Login` and `File System`. When the app is launched for the first time, the user will first see the `Login` view. After logging in with the `login` command, a session token will be saved, which will allow the user to go directly to the `File System` view on the next launch. The set of available commands are different for each view.
 
 ### Login
 
 | Command | Description | 
 |---------|-------------|
-| login   | Opens the login screen in your default browser to authenticate your account and permissions |
+| login   | Opens the login screen in your default browser to authenticate your account and permissions, and then enters the `File System` view |
 | quit    | Quit the app |
 
 ### File System
