@@ -34,7 +34,6 @@ class GDriveApi:
 
     def __init__(self, credentials: Credentials):
         self.service = build('drive', 'v3', credentials=credentials)
-        self.page_token = None
         self.folder_stack = []
         self.drive_items: Dict[str, GDriveItem] = {'root': {'id': 'root'}}
         self.cache = {}
@@ -61,11 +60,18 @@ class GDriveApi:
         if folder_id in self.cache:
             self.drive_items = self.cache[folder_id]
         else:
-            items = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
-                                              spaces='drive',
-                                              fields= 'files(id, name, mimeType)',
-                                              pageToken=self.page_token).execute().get('files', [])
-            self.drive_items = {i['name']: i for i in items}
+            self.drive_items = {}
+            page_token = None
+            while True:
+                results = self.service.files().list(q=f"'{folder_id}' in parents and trashed = False",
+                                                    spaces='drive',
+                                                    fields='nextPageToken, files(id, name, mimeType)',
+                                                    pageToken=page_token).execute()
+                items = results.get('files', [])
+                page_token = results.get('nextPageToken', None)
+                self.drive_items.update({i['name']: i for i in items})
+                if page_token is None:
+                    break
             self.cache[folder_id] = self.drive_items
 
     def typeof(self, name: str) -> str:
