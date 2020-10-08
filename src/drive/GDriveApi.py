@@ -8,7 +8,7 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 from src.ReferenceVar import ReferenceVar
 from src.prompt import ColorText
@@ -120,6 +120,32 @@ class GDriveApi:
         :return:
         """
         return self.drive_items[name] if name in self.drive_items else None
+
+    def upload(self, name: str, options: List[str] = None):
+        """
+        Uploads a file onto the current working directory in Google Drive.
+        :param name:
+        :param options:
+        """
+        mime_type = 'text/plain'
+        file_metadata = {
+            'name': name,
+            'mimeType': mime_type,
+            'parents': [self.folder_stack[len(self.folder_stack) - 1]['id']]
+        }
+        try:
+            media = MediaFileUpload(name, mimetype='text/plain', resumable=True)
+        except FileNotFoundError:
+            print("File not found")
+            return
+        file = self.service.files().create(body=file_metadata,
+                                           media_body=media,
+                                           fields='id').execute()
+        self.drive_items[name] = {
+            'id': file['id'],
+            'name': name,
+            'mimeType': mime_type
+        }
 
     def download(self, name: str, options: List[str] = None, target_filename: str = None):
         """

@@ -35,6 +35,7 @@ def main(creds: ReferenceVar[Credentials]):
             'switch': (lambda _, __: handle_logout()),
             'current': lambda _, __: print(pathway),
             'record': lambda arg, _: api.record_filenames(arg),
+            'upload': lambda arg, opts: api.upload(arg, opts),
             'exec': lambda arg, _: subprocess.call(arg, shell=True)
         }
         autocomplete_options = list(options.keys()) + api.get_names()
