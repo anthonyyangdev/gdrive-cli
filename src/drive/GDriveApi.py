@@ -169,7 +169,6 @@ class GDriveApi:
             if opt in mime_type_options:
                 mime_type = mime_type_options[opt]
         mime_type = mime_type if mime_type is not None else "application/pdf"
-
         desired_item = self.get_item(name)
         if desired_item is None:
             print("File/Folder does not exist")
