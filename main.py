@@ -1,43 +1,21 @@
-import os
 import pathlib
-import subprocess
 
-import pickle
 import os.path
 
-from src.ReferenceVar import ReferenceVar
-from src.drive.GDriveApi import GDriveApi, Credentials, login, get_login_token_opt, logout
+from src.drive.GDriveApi import GDriveApi
 from src.prompt.Prompt import accept
 
+current_directory = pathlib.Path(__file__).parent.absolute()
+history_path = os.path.join(current_directory, 'history.txt')
 
-def main(creds: ReferenceVar[Credentials]):
+
+def main(api: GDriveApi):
     """
     Performs the Google Drive CLI file system navigation.
     """
-    api = GDriveApi(creds.value)
-    online: ReferenceVar[bool] = ReferenceVar(True)
-    current_directory = pathlib.Path(__file__).parent.absolute()
-    history_path = os.path.join(current_directory, 'history.txt')
-
-    def handle_logout():
-        logout(creds)
-        creds.value = None
-        online.value = None
-
-    while online.value:
+    while api.active:
         pathway = api.get_current_path_string()
-        options = {
-            'cd': lambda arg, _: api.cd(arg),
-            'typeof': lambda arg, _: print(api.typeof(arg)),
-            'download': lambda arg, opts: api.download(arg, opts),
-            'ls': lambda _, __: print(api.ls()),
-            'quit': lambda _, __: exit(0),
-            'switch': (lambda _, __: handle_logout()),
-            'current': lambda _, __: print(pathway),
-            'record': lambda arg, _: api.record_filenames(arg),
-            'upload': lambda arg, opts: api.upload(arg, opts),
-            'exec': lambda arg, _: subprocess.call(arg, shell=True)
-        }
+        options = api.get_options()
         autocomplete_options = list(options.keys()) + api.get_names()
         try:
             user_input = accept(pathway, history_path, autocomplete_options)
@@ -54,26 +32,24 @@ def start():
     The first window of the GDrive CLI. Logs a user into a Google account.
     If a login token already exists, then this step is skipped and goes to the file system.
     """
-    creds: ReferenceVar[Credentials] = ReferenceVar(get_login_token_opt())
-    current_directory = pathlib.Path(__file__).parent.absolute()
-    history_path = os.path.join(current_directory, 'history.txt')
+    api = GDriveApi()
     # If there are no (valid) credentials available, let the user log in.
-    while creds.value is None or not creds.value.valid:
+    while api.credentials is None or not api.credentials.valid:
         options = {
-            "login": lambda: login(creds),
+            "login": lambda: api.login(),
             "quit": lambda: exit(0)
         }
         try:
             user_input = accept('', history_path, list(options.keys()))
             if user_input['cmd'] in options:
                 options[user_input['cmd']]()
-                main(creds)
+                main(api)
             else:
                 print("Invalid input")
         except KeyboardInterrupt:
             pass
     else:
-        main(creds)
+        main(api)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import io
 import os
 import pathlib
 import pickle
+import subprocess
 from typing import TypedDict, Dict, Callable, Optional, List
 
 from google.auth.transport.requests import Request
@@ -10,7 +11,6 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
-from src.ReferenceVar import ReferenceVar
 from src.prompt import ColorText
 
 
@@ -27,17 +27,65 @@ class GDriveItem(TypedDict):
     mimeType: str
 
 
+current_directory = pathlib.Path(__file__).parent.absolute()
+token_path = os.path.join(current_directory, 'token.pickle')
+
+
+def get_login_token_opt() -> Optional[Credentials]:
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
+            return pickle.load(token)
+    return None
+
+
 class GDriveApi:
     """
     A wrapper interface of the Google Drive API.
     """
 
-    def __init__(self, credentials: Credentials):
-        self.service = build('drive', 'v3', credentials=credentials)
+    def __init__(self):
+        self.credentials: Optional[Credentials] = get_login_token_opt()
+        self.service = build('drive', 'v3', credentials=self.credentials)
         self.folder_stack = []
         self.drive_items: Dict[str, GDriveItem] = {'root': {'id': 'root'}}
         self.cache = {}
+        self.active = True
         self.cd('root')
+
+    def get_options(self) -> Dict[str, Callable[[str, Optional[List[str]]], None]]:
+        return {
+            'cd': lambda arg, _: self.cd(arg),
+            'typeof': lambda arg, _: print(self.typeof(arg)),
+            'download': lambda arg, opts: self.download(arg, opts),
+            'ls': lambda _, __: print(self.ls()),
+            'quit': lambda _, __: exit(0),
+            'switch': lambda _, __: self.logout(),
+            'current': lambda _, __: print(self.get_current_path_string()),
+            'record': lambda arg, _: self.record_filenames(arg),
+            'upload': lambda arg, opts: self.upload(arg, opts),
+            'exec': lambda arg, _: subprocess.call(arg, shell=True)
+        }
+
+    def login(self):
+        """
+        Performs Google login and saves login information in a token.
+        """
+        if self.credentials and self.credentials.expired and self.credentials.refresh_token:
+            self.credentials.refresh(Request())
+        else:
+            cred_files = os.path.join(current_directory, 'client_secrets.json')
+            flow = InstalledAppFlow.from_client_secrets_file(
+                cred_files, ['https://www.googleapis.com/auth/drive'])
+            self.credentials = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open(token_path, 'wb') as token:
+            pickle.dump(self.credentials, token)
+
+    def logout(self):
+        if os.path.exists(token_path):
+            os.remove(token_path)
+        self.credentials = None
+        self.active = False
 
     def cd(self, folder_name: str):
         """
@@ -200,35 +248,3 @@ class GDriveApi:
         target_filename = 'filenames.txt' if target_filename is None else target_filename
         with open(target_filename, 'w') as f:
             f.write(content)
-
-
-current_directory = pathlib.Path(__file__).parent.absolute()
-token_path = os.path.join(current_directory, 'token.pickle')
-
-
-def get_login_token_opt() -> Optional[Credentials]:
-    if os.path.exists(token_path):
-        with open(token_path, 'rb') as token:
-            return pickle.load(token)
-    return None
-
-
-def login(credentials: ReferenceVar[Credentials]):
-    """
-    Performs Google login and saves login information in a token.
-    """
-    if credentials.value and credentials.value.expired and credentials.value.refresh_token:
-        credentials.value.refresh(Request())
-    else:
-        cred_files = os.path.join(current_directory, 'client_secrets.json')
-        flow = InstalledAppFlow.from_client_secrets_file(
-            cred_files, ['https://www.googleapis.com/auth/drive'])
-        credentials.value = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open(token_path, 'wb') as token:
-        pickle.dump(credentials.value, token)
-
-
-def logout(creds: ReferenceVar[Credentials]):
-    if os.path.exists(token_path):
-        os.remove(token_path)
