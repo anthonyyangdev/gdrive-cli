@@ -12,6 +12,25 @@ class InputPrompt(TypedDict):
     argument: Optional[str]
 
 
+class InputOption(TypedDict):
+    option: str
+    args: List[str]
+
+
+class UserInputPrompt(TypedDict):
+    cmd: str
+    options: List[InputPrompt]
+    main_arg: str
+
+
+def get_prompt(pathway: str, history_path: str, autocompletion: List[str]) -> UserInputPrompt:
+    user_input = prompt(f"GDrive ∞/{pathway}> ",
+                        # history=FileHistory(history_path),
+                        completer=AutoCompleter(autocompletion),
+                        ).strip().split(' ')
+    pass
+
+
 def accept(pathway: str, history_path: str, autocomplete_options: List[str]) -> InputPrompt:
     user_input = prompt(f"GDrive ∞/{pathway}> ",
                         history=FileHistory(history_path),
