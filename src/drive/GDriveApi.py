@@ -45,6 +45,8 @@ class GDriveApi:
 
     def __init__(self):
         self.credentials: Optional[Credentials] = get_login_token_opt()
+        if self.credentials is None:
+            self.login()
         self.service = build('drive', 'v3', credentials=self.credentials)
         self.folder_stack = []
         self.drive_items: Dict[str, GDriveItem] = {'root': {'id': 'root'}}

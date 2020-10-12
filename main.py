@@ -33,23 +33,27 @@ def start():
     If a login token already exists, then this step is skipped and goes to the file system.
     """
     api = GDriveApi()
-    # If there are no (valid) credentials available, let the user log in.
-    while api.credentials is None or not api.credentials.valid:
-        options = {
-            "login": lambda: api.login(),
-            "quit": lambda: exit(0)
-        }
-        try:
-            user_input = accept('', history_path, list(options.keys()))
-            if user_input['cmd'] in options:
-                options[user_input['cmd']]()
-                main(api)
-            else:
-                print("Invalid input")
-        except KeyboardInterrupt:
-            pass
-    else:
+    while True:
+        if api.credentials is None:
+            api = GDriveApi()
         main(api)
+    # # If there are no (valid) credentials available, let the user log in.
+    # while api.credentials is None or not api.credentials.valid:
+    #     options = {
+    #         "login": lambda: api.login(),
+    #         "quit": lambda: exit(0)
+    #     }
+    #     try:
+    #         user_input = accept('', history_path, list(options.keys()))
+    #         if user_input['cmd'] in options:
+    #             options[user_input['cmd']]()
+    #             main(api)
+    #         else:
+    #             print("Invalid input")
+    #     except KeyboardInterrupt:
+    #         pass
+    # else:
+    #     main(api)
 
 
 if __name__ == "__main__":
